@@ -2,12 +2,12 @@ version: '3'
 services:
   mysql57:
     image: mysql:5.7
-    container_name: mysql
+    container_name: litemall-mysql
     ports:
       - "3306:3306"
     command:
-      --character-set-server=utf8
-      --collation-server=utf8_general_ci
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
       --default-authentication-plugin=mysql_native_password
     volumes:
       - ./db/conf.d:/etc/mysql/conf.d
@@ -16,20 +16,27 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: litemall123456
     restart: always
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-plitemall123456"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   litemall:
     build:
-      context: litemall
-      dockerfile: Dockerfile
-    container_name: litemall
+      context: ..
+      dockerfile: docker/litemall/Dockerfile
+    container_name: litemall-app
     ports:
       - "8080:8080"
     volumes:
       - ./litemall/storage:/storage
       - ./litemall/logs:/logs
       - ./litemall/backup:/backup
-      - /etc/localtime:/etc/localtime
+      - /etc/localtime:/etc/localtime:ro
     environment:
       - TZ=Asia/Shanghai
     depends_on:
-      - mysql57
+      mysql57:
+        condition: service_healthy
     restart: always
